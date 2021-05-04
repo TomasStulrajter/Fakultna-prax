@@ -11,7 +11,7 @@ mass_training_base_address = 'D:/Downloads/3.rocnik/Prax/Database/Mass training/
 mass_training_csv_full_address = 'D:/Downloads/3.rocnik/Prax/Database/Mass training set csv metadata/mass_case_description_train_set.csv'
 
 first_record = 1
-last_record = 10
+last_record = 2
 max_record = 0
 
 #FUNCTIONS
@@ -121,13 +121,92 @@ def draw_bounding_box(mammogram_pixel_array, roi_pixel_array):
 
     draw_with_description(mammogram_pixel_array)
 
+def draw_everything_one_cycle(mammogram_pixel_array, roi_pixel_array):
+    #DRAWING PARAMETERS
+    pencil_width = 2
+    pencil_color = 7000
 
+    #BOUNDING BOX POSITION - assuming [0, 0] is in bottom left corner of canvas
+    bottom = 0
+    top = 0
+    left = roi_pixel_array.shape[1] - 1
+    right = 0
+
+    top_found = 0
+    bottom_found = 1
+
+    #CYCLE
+    #draw roi and detect bounding box position
+    #scan all rows
+    for i in range(roi_pixel_array.shape[0]):
+        j = 0
+        while j < roi_pixel_array.shape[1]:
+
+            #1st non-zero pixel found in mask row
+            if roi_pixel_array[i][j] != 0:
+                if top_found == 0:
+                    top = i
+                    top_found = 1
+                if roi_pixel_array[i + 1][j] != 0:
+                    bottom_found = 0
+                if j < left:
+                    left = j
+                for k in range(-pencil_width, pencil_width):
+                    for l in range(-pencil_width, pencil_width):
+                        mammogram_pixel_array[i + k][j + l] = pencil_color
+
+                #scanning non-zero pixels
+                while roi_pixel_array[i][j] != 0:
+                    if roi_pixel_array[i - 1][j] == 0 or roi_pixel_array[i + 1][j] == 0:
+                        for k in range(-pencil_width, pencil_width):
+                            for l in range(-pencil_width, pencil_width):
+                                mammogram_pixel_array[i + k][j + l] = pencil_color
+                        j = j + 1
+                    else:
+                        j = j + 1
+
+                #last non-zeor pixel found
+                if bottom_found == 1:
+                    bottom = i + 1
+                else:
+                    bottom_found = 1
+                if j > right:
+                    right = j
+                for k in range(-pencil_width, pencil_width):
+                    for l in range(-pencil_width, pencil_width):
+                        mammogram_pixel_array[i + k][j + l] = pencil_color
+            else:
+                j = j + 1
+
+    #minor cycles
+    #draw bounding box
+    #top line && bottom line
+    for i in range(left, right):
+        for j in range(-pencil_width, pencil_width):
+            mammogram_pixel_array[top + j][i] = pencil_color
+    for i in range(left, right):
+        for j in range(-pencil_width, pencil_width):
+            mammogram_pixel_array[bottom + j][i] = pencil_color
+
+    # right line && left line
+    for i in range(top, bottom):
+        for j in range(-pencil_width, pencil_width):
+            mammogram_pixel_array[i][right + j] = pencil_color
+    for i in range(top, bottom):
+        for j in range(-pencil_width, pencil_width):
+            mammogram_pixel_array[i][left + j] = pencil_color
+
+    #DISPLAY RESULT
+    draw_with_description(mammogram_pixel_array)
+
+
+#MAIN
 #load csv file
 with open(mass_training_csv_full_address, newline='') as f:
     reader = csv.reader(f)
     metadata = list(reader)
 max_record = len(metadata)
-print(max_record)
+#print(max_record)
 
 #loop selected records
 for i in range(first_record, last_record):
@@ -190,10 +269,11 @@ for i in range(first_record, last_record):
     #function - what to do with images
     #draw_with_description(mammogram_pixel_array)
     #draw_with_description(roi_pixel_array)
-    draw_with_description(cropped_pixel_array)
+    #draw_with_description(cropped_pixel_array)
 
     #draw_roi(mammogram_pixel_array, roi_pixel_array)
     #draw_bounding_box(mammogram_pixel_array, roi_pixel_array)
+    draw_everything_one_cycle(mammogram_pixel_array, roi_pixel_array)
 
 
 #call the methods and assigning arrays to data sets
