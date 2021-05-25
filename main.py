@@ -16,9 +16,9 @@ mass_training_csv_full_address = 'D:/Downloads/3.rocnik/Prax/Database/Mass train
 malignant_base_address = 'D:/Downloads/3.rocnik/Prax/Database/Malignant benign image sets/MALIGNANT/'
 benign_base_address = 'D:/Downloads/3.rocnik/Prax/Database/Malignant benign image sets/BENIGN/'
 
+max_record = 0
 first_record = 1
 last_record = 21
-max_record = 0
 
 #FUNCTIONS
 #function to draw images with their description
@@ -222,7 +222,7 @@ def create_bounding_box(mammogram_pixel_array, bottom, top, left, right):
     image.save('test.png')
 
 
-def create_bounding_box_normalised(mammogram_pixel_array, roi_pixel_array, height, width,record_number):
+def create_bounding_box_normalised(mammogram_pixel_array, roi_pixel_array, height, width, record_number):
     bottom = 0
     top = 0
     left = roi_pixel_array.shape[1] - 1
@@ -247,11 +247,18 @@ def create_bounding_box_normalised(mammogram_pixel_array, roi_pixel_array, heigh
                 if j < left:
                     left = j
 
+
                 # scanning non-zero pixels
                 while roi_pixel_array[i][j] != 0:
-                    j = j + 1
+                    if j < roi_pixel_array.shape[1] - 1:
+                        j = j + 1
+                    else:
+                        right = roi_pixel_array.shape[1] - 1
+                        j = roi_pixel_array.shape[1]
+                        break
 
-                # last non-zeor pixel found
+
+                # last non-zero pixel found
                 if bottom_found == 1:
                     bottom = i + 1
                 else:
@@ -271,6 +278,23 @@ def create_bounding_box_normalised(mammogram_pixel_array, roi_pixel_array, heigh
     new_top = round(center_y - (height / 2))
     new_left = round(center_x - (width / 2))
     new_right = round(center_x + (width / 2))
+
+    #check if bounding box possible - if not, then relocate
+    if round(center_y + (height / 2)) > mammogram_pixel_array.shape[0]:
+        new_bottom = mammogram_pixel_array.shape[0] - 1
+        new_top = new_bottom - height
+
+    if round(center_y - (height / 2)) < 0:
+        new_bottom = 0
+        new_top = height
+
+    if round(center_x + (width / 2)) > mammogram_pixel_array.shape[1]:
+        new_right = mammogram_pixel_array.shape[1] - 1
+        new_left = new_right - width
+
+    if round(center_x - (width / 2)) < 0:
+        new_left = 0
+        new_right = width
 
     #create new image
     bounding_box_image = numpy.arange((new_bottom - new_top) * (new_right - new_left))
@@ -301,7 +325,7 @@ max_record = len(metadata)
 #print(max_record)
 
 #loop selected records
-for i in range(first_record, last_record):
+for i in range(168, max_record):
     # full mammogram image
     mammogram_file_address = (metadata[i][11])[:len(metadata[i][11])-10]
     mammogram_full_address = mass_training_base_address + mammogram_file_address
@@ -323,7 +347,14 @@ for i in range(first_record, last_record):
     cropped_file_address = (metadata[i][12])[:len(metadata[i][12]) - 10]
     cropped_full_address = mass_training_base_address + cropped_file_address
     cropped_base = cropped_full_address
-    cropped_file_name = "1-2.dcm"
+
+    cropped_file_name = ""
+    try:
+        cropped_file_name = "1-2.dcm"
+        test = os.path.getsize(cropped_base + cropped_file_name)
+    except:
+        cropped_file_name = "1-1.dcm"
+
 
     #check for file swap
     roi_size = os.path.getsize(roi_base + roi_file_name)
@@ -373,3 +404,5 @@ for i in range(first_record, last_record):
 #draw_roi()
 #draw_bounding_box()
 #mamogram_ds.PixelData = mamogram_pixel_array.tobytes()
+
+#zaznamy co sa cyklia - 97, 113, 125, 139, 168 - UZ VSETKY IDU, HADAM JE TO OPRAVENE
